@@ -1,0 +1,18 @@
+services:
+  api:
+    build: ./api
+    ports:
+      # "host:container" -- maps port 8000 on your machine to port 8000 in the container
+      - "8000:8000"
+    environment:
+      - API_KEY=${API_KEY}
+      - FMCSA_WEBKEY=${FMCSA_WEBKEY}
+      - DATABASE_URL=sqlite:///./data/carrier_sales.db
+    volumes:
+      # Without this, every time you rebuild the container you'd lose all booked
+      # loads and call history -- the database file would be wiped along with the
+      # container. This volume keeps the .db file on your machine, outside the container.
+      - carrier_sales_data:/app/data
+
+volumes:
+  carrier_sales_data:
