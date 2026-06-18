@@ -1,7 +1,10 @@
+from pathlib import Path
+
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 
 from app.database import init_db
-from app.routers import loads, carriers, calls, metrics
+from app.routers import loads, carriers, calls, metrics, dashboard
 
 app = FastAPI(
     title="Carrier Sales API",
@@ -26,3 +29,10 @@ app.include_router(loads.router)
 app.include_router(carriers.router)
 app.include_router(calls.router)
 app.include_router(metrics.router)
+app.include_router(dashboard.router)
+
+
+@app.get("/", include_in_schema=False)
+def serve_dashboard():
+    """Serves the static dashboard page -- the deliverable link for Objective 2."""
+    return FileResponse(Path(__file__).parent / "static" / "dashboard.html")

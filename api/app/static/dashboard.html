@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carrier Sales — Ops Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#14181d;
+    --panel:#1b2129;
+    --panel-border:#2a323c;
+    --text:#ece8dd;
+    --text-muted:#8a96a3;
+    --amber:#f2a93b;
+    --orange:#e8590c;
+    --green:#5fa776;
+    --red:#c75450;
+    --bluegray:#5b6b7a;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  .hazard-rule{
+    height:6px;
+    width:100%;
+    background:repeating-linear-gradient(135deg, var(--amber) 0 14px, var(--bg) 14px 28px);
+    opacity:0.9;
+  }
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:22px 32px;
+    border-bottom:1px solid var(--panel-border);
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  .brand{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+  }
+  .brand h1{
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    letter-spacing:0.5px;
+    font-size:22px;
+    margin:0;
+    text-transform:uppercase;
+  }
+  .brand span.sub{
+    font-family:'Oswald',sans-serif;
+    font-size:13px;
+    letter-spacing:2px;
+    color:var(--amber);
+    text-transform:uppercase;
+  }
+  .status{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--text-muted);
+  }
+  .pulse-dot{
+    width:9px;height:9px;border-radius:50%;
+    background:var(--green);
+    box-shadow:0 0 0 0 rgba(95,167,118,0.6);
+    animation:pulse 2s infinite;
+  }
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(95,167,118,0.5);}
+    70%{box-shadow:0 0 0 7px rgba(95,167,118,0);}
+    100%{box-shadow:0 0 0 0 rgba(95,167,118,0);}
+  }
+  main{
+    max-width:1180px;
+    margin:0 auto;
+    padding:32px;
+  }
+  .eyebrow{
+    font-family:'Oswald',sans-serif;
+    font-size:12px;
+    letter-spacing:2px;
+    color:var(--text-muted);
+    text-transform:uppercase;
+    margin:0 0 14px 2px;
+  }
+  .kpi-grid{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:14px;
+    margin-bottom:36px;
+  }
+  @media (max-width:900px){ .kpi-grid{grid-template-columns:repeat(2,1fr);} }
+  .kpi-card{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:6px;
+    padding:18px 16px;
+    position:relative;
+    overflow:hidden;
+  }
+  .kpi-card::before{
+    content:'';
+    position:absolute; top:0; left:0; width:3px; height:100%;
+    background:var(--amber);
+  }
+  .kpi-label{
+    font-size:11px;
+    letter-spacing:1px;
+    color:var(--text-muted);
+    text-transform:uppercase;
+    margin-bottom:8px;
+  }
+  .kpi-value{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:30px;
+    font-weight:600;
+    line-height:1;
+  }
+  .kpi-value.green{color:var(--green);}
+  .kpi-value.amber{color:var(--amber);}
+  .charts-row{
+    display:grid;
+    grid-template-columns:1.3fr 1fr;
+    gap:18px;
+    margin-bottom:36px;
+  }
+  @media (max-width:800px){ .charts-row{grid-template-columns:1fr;} }
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:6px;
+    padding:20px;
+  }
+  .panel h2{
+    font-family:'Oswald',sans-serif;
+    font-size:15px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    margin:0 0 16px 0;
+    color:var(--text);
+    font-weight:500;
+  }
+  .chart-wrap{position:relative; height:240px;}
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+  }
+  th{
+    text-align:left;
+    font-family:'Oswald',sans-serif;
+    font-size:11px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--text-muted);
+    padding:8px 10px;
+    border-bottom:1px solid var(--panel-border);
+  }
+  td{
+    padding:10px 10px;
+    border-bottom:1px solid var(--panel-border);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    color:var(--text);
+  }
+  tr:last-child td{border-bottom:none;}
+  .pill{
+    display:inline-block;
+    padding:3px 9px;
+    border-radius:3px;
+    font-size:11px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+  }
+  .pill.booked{background:rgba(95,167,118,0.15); color:var(--green);}
+  .pill.negotiation_failed{background:rgba(199,84,80,0.15); color:var(--red);}
+  .pill.ineligible_carrier{background:rgba(232,89,12,0.15); color:var(--orange);}
+  .pill.no_matching_load{background:rgba(91,107,122,0.2); color:var(--bluegray);}
+  .pill.unknown{background:rgba(91,107,122,0.2); color:var(--text-muted);}
+  .dot{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px;}
+  .dot.positive{background:var(--green);}
+  .dot.neutral{background:var(--amber);}
+  .dot.negative{background:var(--red);}
+  .dot.unknown{background:var(--text-muted);}
+  .empty-state{
+    text-align:center;
+    padding:40px 20px;
+    color:var(--text-muted);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+  }
+  footer{
+    text-align:center;
+    color:var(--text-muted);
+    font-size:11px;
+    padding:24px;
+    font-family:'IBM Plex Mono',monospace;
+  }
+</style>
+</head>
+<body>
+
+<div class="hazard-rule"></div>
+<header>
+  <div class="brand">
+    <h1>Carrier Sales</h1>
+    <span class="sub">Ops Dashboard</span>
+  </div>
+  <div class="status">
+    <span class="pulse-dot"></span>
+    <span id="last-updated">Loading...</span>
+  </div>
+</header>
+
+<main>
+  <p class="eyebrow">Inbound carrier calls — summary</p>
+  <div class="kpi-grid" id="kpi-grid"></div>
+
+  <div class="charts-row">
+    <div class="panel">
+      <h2>Call outcomes</h2>
+      <div class="chart-wrap"><canvas id="outcomeChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <h2>Carrier sentiment</h2>
+      <div class="chart-wrap"><canvas id="sentimentChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Recent calls</h2>
+    <div id="table-wrap"></div>
+  </div>
+</main>
+
+<footer>Data sourced live from the carrier-sales API · refreshes every 30s</footer>
+
+<script>
+const OUTCOME_LABELS = {
+  booked: "Booked",
+  negotiation_failed: "Negotiation failed",
+  ineligible_carrier: "Ineligible carrier",
+  no_matching_load: "No matching load",
+  "": "Unclassified"
+};
+const OUTCOME_COLORS = {
+  booked: "#5fa776",
+  negotiation_failed: "#c75450",
+  ineligible_carrier: "#e8590c",
+  no_matching_load: "#5b6b7a",
+  "": "#3a4350"
+};
+const SENTIMENT_COLORS = {
+  positive: "#5fa776",
+  neutral: "#f2a93b",
+  negative: "#c75450",
+  "": "#5b6b7a"
+};
+
+let outcomeChart, sentimentChart;
+
+function fmtMoney(v){
+  if(v === null || v === undefined) return "—";
+  return "$" + Number(v).toLocaleString(undefined,{maximumFractionDigits:0});
+}
+function fmtPct(v){ return Math.round((v||0)*100) + "%"; }
+function fmtTime(iso){
+  if(!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleString(undefined,{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"});
+}
+
+function renderKpis(m){
+  const cards = [
+    {label:"Total calls", value:m.total_calls, cls:""},
+    {label:"Conversion rate", value:fmtPct(m.conversion_rate), cls:"green"},
+    {label:"Booked loads", value:m.booked_calls, cls:"amber"},
+    {label:"Avg negotiation rounds", value:(m.avg_negotiation_rounds ?? 0), cls:""},
+    {label:"Avg booked rate", value:fmtMoney(m.avg_final_agreed_rate), cls:"amber"},
+  ];
+  document.getElementById("kpi-grid").innerHTML = cards.map(c => `
+    <div class="kpi-card">
+      <div class="kpi-label">${c.label}</div>
+      <div class="kpi-value ${c.cls}">${c.value}</div>
+    </div>
+  `).join("");
+}
+
+function renderOutcomeChart(breakdown){
+  const keys = Object.keys(breakdown);
+  const labels = keys.map(k => OUTCOME_LABELS[k] || k || "Unclassified");
+  const data = keys.map(k => breakdown[k]);
+  const colors = keys.map(k => OUTCOME_COLORS[k] || "#3a4350");
+
+  if(outcomeChart) outcomeChart.destroy();
+  outcomeChart = new Chart(document.getElementById("outcomeChart"), {
+    type: "bar",
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderRadius: 3 }] },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: "#8a96a3", precision:0 }, grid: { color: "#2a323c" } },
+        y: { ticks: { color: "#ece8dd", font:{family:"Inter", size:12} }, grid: { display:false } }
+      }
+    }
+  });
+}
+
+function renderSentimentChart(breakdown){
+  const keys = Object.keys(breakdown);
+  const labels = keys.map(k => (k || "Unclassified")[0].toUpperCase() + (k || "Unclassified").slice(1));
+  const data = keys.map(k => breakdown[k]);
+  const colors = keys.map(k => SENTIMENT_COLORS[k] || "#5b6b7a");
+
+  if(sentimentChart) sentimentChart.destroy();
+  sentimentChart = new Chart(document.getElementById("sentimentChart"), {
+    type: "doughnut",
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth:0 }] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position:"bottom", labels:{ color:"#ece8dd", font:{family:"Inter", size:12} } } }
+    }
+  });
+}
+
+function renderTable(rows){
+  const wrap = document.getElementById("table-wrap");
+  if(!rows.length){
+    wrap.innerHTML = `<div class="empty-state">No calls logged yet — once the agent handles a real or test call, it will show up here.</div>`;
+    return;
+  }
+  wrap.innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Time</th><th>MC #</th><th>Carrier</th><th>Load</th>
+        <th>Rate</th><th>Outcome</th><th>Sentiment</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map(r => `
+          <tr>
+            <td>${fmtTime(r.created_at)}</td>
+            <td>${r.mc_number || "—"}</td>
+            <td>${r.carrier_name || "—"}</td>
+            <td>${r.load_id || "—"}</td>
+            <td>${fmtMoney(r.final_agreed_rate || r.loadboard_rate)}</td>
+            <td><span class="pill ${r.outcome || 'unknown'}">${OUTCOME_LABELS[r.outcome] || r.outcome || "Unclassified"}</span></td>
+            <td><span class="dot ${r.sentiment || 'unknown'}"></span>${r.sentiment || "—"}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+async function loadData(){
+  try{
+    const [metrics, calls] = await Promise.all([
+      fetch("/dashboard/metrics").then(r => r.json()),
+      fetch("/dashboard/calls").then(r => r.json())
+    ]);
+    renderKpis(metrics);
+    renderOutcomeChart(metrics.outcome_breakdown || {});
+    renderSentimentChart(metrics.sentiment_breakdown || {});
+    renderTable(calls);
+    document.getElementById("last-updated").textContent = "Updated " + new Date().toLocaleTimeString();
+  }catch(e){
+    document.getElementById("last-updated").textContent = "Connection error";
+    console.error(e);
+  }
+}
+
+loadData();
+setInterval(loadData, 30000);
+</script>
+
+</body>
+</html>
