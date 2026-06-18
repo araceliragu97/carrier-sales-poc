@@ -9,16 +9,16 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root{
-    --bg:#14181d;
-    --panel:#1b2129;
-    --panel-border:#2a323c;
-    --text:#ece8dd;
-    --text-muted:#8a96a3;
-    --amber:#f2a93b;
-    --orange:#e8590c;
-    --green:#5fa776;
-    --red:#c75450;
-    --bluegray:#5b6b7a;
+    --bg:#f7f2e7;
+    --panel:#ffffff;
+    --panel-border:#ddd3ba;
+    --text:#2a2620;
+    --text-muted:#8c8270;
+    --amber:#bb6b09;
+    --orange:#a8430f;
+    --green:#3f7d56;
+    --red:#a23631;
+    --bluegray:#6b7280;
   }
   *{box-sizing:border-box;}
   body{
@@ -82,13 +82,13 @@
   .pulse-dot{
     width:9px;height:9px;border-radius:50%;
     background:var(--green);
-    box-shadow:0 0 0 0 rgba(95,167,118,0.6);
+    box-shadow:0 0 0 0 rgba(63,125,86,0.5);
     animation:pulse 2s infinite;
   }
   @keyframes pulse{
-    0%{box-shadow:0 0 0 0 rgba(95,167,118,0.5);}
-    70%{box-shadow:0 0 0 7px rgba(95,167,118,0);}
-    100%{box-shadow:0 0 0 0 rgba(95,167,118,0);}
+    0%{box-shadow:0 0 0 0 rgba(63,125,86,0.45);}
+    70%{box-shadow:0 0 0 7px rgba(63,125,86,0);}
+    100%{box-shadow:0 0 0 0 rgba(63,125,86,0);}
   }
   main{
     max-width:1180px;
@@ -118,6 +118,7 @@
     padding:18px 16px;
     position:relative;
     overflow:hidden;
+    box-shadow:0 1px 3px rgba(42,38,32,0.07);
   }
   .kpi-card::before{
     content:'';
@@ -157,6 +158,7 @@
     border:1px solid var(--panel-border);
     border-radius:6px;
     padding:20px;
+    box-shadow:0 1px 3px rgba(42,38,32,0.07);
   }
   .panel h2{
     font-family:'Oswald',sans-serif;
@@ -204,7 +206,7 @@
 <div class="hazard-rule"></div>
 <header>
   <div class="brand">
-    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#f2a93b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#bb6b09" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
       <path d="M2.5 16V6.5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1V16"/>
       <path d="M12.5 9.5h3.8l3.2 3.2V16h-7"/>
       <circle cx="6.5" cy="17.5" r="1.6"/>
@@ -246,11 +248,11 @@
 
 <script>
 const OUTCOME_COLORS = {
-  booked: "#5fa776",
-  negotiation_failed: "#c75450",
-  ineligible_carrier: "#e8590c",
-  no_matching_load: "#5b6b7a",
-  "": "#3a4350"
+  booked: "#3f7d56",
+  negotiation_failed: "#a23631",
+  ineligible_carrier: "#a8430f",
+  no_matching_load: "#6b7280",
+  "": "#c9bfa8"
 };
 const OUTCOME_LABELS = {
   booked: "Booked",
@@ -260,10 +262,10 @@ const OUTCOME_LABELS = {
   "": "Unclassified"
 };
 const SENTIMENT_COLORS = {
-  positive: "#5fa776",
-  neutral: "#f2a93b",
-  negative: "#c75450",
-  "": "#5b6b7a"
+  positive: "#3f7d56",
+  neutral: "#bb6b09",
+  negative: "#a23631",
+  "": "#6b7280"
 };
 
 let roundsChart, sentimentChart;
@@ -318,8 +320,8 @@ function renderRoundsChart(calls){
         }
       },
       scales: {
-        y: { ticks: { color: "#8a96a3", precision:0, stepSize:1 }, grid: { color: "#2a323c" }, title:{display:true, text:"Rounds", color:"#8a96a3"} },
-        x: { ticks: { color: "#8a96a3" }, grid: { display:false } }
+        y: { ticks: { color: "#8c8270", precision:0, stepSize:1 }, grid: { color: "#e8e0cc" }, title:{display:true, text:"Rounds", color:"#8c8270"} },
+        x: { ticks: { color: "#8c8270" }, grid: { display:false } }
       }
     }
   });
@@ -343,7 +345,7 @@ function renderSentimentChart(breakdown){
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { position:"bottom", labels:{ color:"#ece8dd", font:{family:"Inter", size:12} } } }
+      plugins: { legend: { position:"bottom", labels:{ color:"#2a2620", font:{family:"Inter", size:12} } } }
     }
   });
 }
