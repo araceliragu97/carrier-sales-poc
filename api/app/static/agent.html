@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carrier Sales — Agent Behavior</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#14181d;
+    --panel:#1b2129;
+    --panel-border:#2a323c;
+    --text:#ece8dd;
+    --text-muted:#8a96a3;
+    --amber:#f2a93b;
+    --orange:#e8590c;
+    --green:#5fa776;
+    --red:#c75450;
+    --bluegray:#5b6b7a;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  .hazard-rule{
+    height:6px;
+    width:100%;
+    background:repeating-linear-gradient(135deg, var(--amber) 0 14px, var(--bg) 14px 28px);
+    opacity:0.9;
+  }
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:22px 32px;
+    border-bottom:1px solid var(--panel-border);
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .brand h1{
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    letter-spacing:0.5px;
+    font-size:22px;
+    margin:0;
+    text-transform:uppercase;
+  }
+  .brand span.sub{
+    font-family:'Oswald',sans-serif;
+    font-size:13px;
+    letter-spacing:2px;
+    color:var(--amber);
+    text-transform:uppercase;
+  }
+  .status{
+    display:flex;
+    align-items:center;
+    gap:18px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--text-muted);
+  }
+  .nav-link{
+    color:var(--text-muted);
+    text-decoration:none;
+    border-bottom:1px dotted var(--bluegray);
+    padding-bottom:1px;
+  }
+  .nav-link:hover{ color:var(--amber); border-color:var(--amber); }
+  .live-status{ display:flex; align-items:center; gap:8px; }
+  .pulse-dot{
+    width:9px;height:9px;border-radius:50%;
+    background:var(--green);
+    box-shadow:0 0 0 0 rgba(95,167,118,0.6);
+    animation:pulse 2s infinite;
+  }
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(95,167,118,0.5);}
+    70%{box-shadow:0 0 0 7px rgba(95,167,118,0);}
+    100%{box-shadow:0 0 0 0 rgba(95,167,118,0);}
+  }
+  main{
+    max-width:1180px;
+    margin:0 auto;
+    padding:32px;
+  }
+  .eyebrow{
+    font-family:'Oswald',sans-serif;
+    font-size:12px;
+    letter-spacing:2px;
+    color:var(--text-muted);
+    text-transform:uppercase;
+    margin:0 0 14px 2px;
+  }
+  .eyebrow .agent-name{ color:var(--amber); }
+  .kpi-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:14px;
+    margin-bottom:36px;
+  }
+  @media (max-width:900px){ .kpi-grid{grid-template-columns:repeat(2,1fr);} }
+  .kpi-card{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:6px;
+    padding:18px 16px;
+    position:relative;
+    overflow:hidden;
+  }
+  .kpi-card::before{
+    content:'';
+    position:absolute; top:0; left:0; width:3px; height:100%;
+    background:var(--amber);
+  }
+  .kpi-label{
+    font-size:11px;
+    letter-spacing:1px;
+    color:var(--text-muted);
+    text-transform:uppercase;
+    margin-bottom:8px;
+  }
+  .kpi-value{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:30px;
+    font-weight:600;
+    line-height:1;
+  }
+  .kpi-value.green{color:var(--green);}
+  .kpi-value.amber{color:var(--amber);}
+  .kpi-n{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    color:var(--text-muted);
+    margin-top:6px;
+  }
+  .charts-row{
+    display:grid;
+    grid-template-columns:1.4fr 1fr;
+    gap:18px;
+    margin-bottom:36px;
+  }
+  @media (max-width:800px){ .charts-row{grid-template-columns:1fr;} }
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:6px;
+    padding:20px;
+  }
+  .panel h2{
+    font-family:'Oswald',sans-serif;
+    font-size:15px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    margin:0 0 4px 0;
+    color:var(--text);
+    font-weight:500;
+  }
+  .panel .panel-sub{
+    font-size:11.5px;
+    color:var(--text-muted);
+    margin:0 0 16px 0;
+  }
+  .chart-wrap{position:relative; height:260px;}
+  .legend-row{
+    display:flex;
+    gap:16px;
+    margin-top:12px;
+    font-size:11px;
+    color:var(--text-muted);
+    flex-wrap:wrap;
+  }
+  .legend-row span{ display:flex; align-items:center; gap:5px; }
+  .legend-dot{ width:8px; height:8px; border-radius:50%; display:inline-block; }
+  .empty-state{
+    text-align:center;
+    padding:40px 20px;
+    color:var(--text-muted);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+  }
+  footer{
+    text-align:center;
+    color:var(--text-muted);
+    font-size:11px;
+    padding:24px;
+    font-family:'IBM Plex Mono',monospace;
+  }
+</style>
+</head>
+<body>
+
+<div class="hazard-rule"></div>
+<header>
+  <div class="brand">
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#f2a93b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2.5 16V6.5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1V16"/>
+      <path d="M12.5 9.5h3.8l3.2 3.2V16h-7"/>
+      <circle cx="6.5" cy="17.5" r="1.6"/>
+      <circle cx="16" cy="17.5" r="1.6"/>
+      <path d="M4 17.5h1M17.7 17.5h2.3M8.2 17.5h6"/>
+    </svg>
+    <h1>Carrier Sales</h1>
+    <span class="sub">Agent Behavior</span>
+  </div>
+  <div class="status">
+    <a class="nav-link" href="/">← Ops Dashboard</a>
+    <div class="live-status">
+      <span class="pulse-dot"></span>
+      <span id="last-updated">Loading...</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <p class="eyebrow">Agent: <span class="agent-name">Carrier Expert</span> — call quality &amp; negotiation behavior</p>
+  <div class="kpi-grid" id="kpi-grid"></div>
+
+  <div class="charts-row">
+    <div class="panel">
+      <h2>Negotiation rounds per call</h2>
+      <p class="panel-sub">How many counter-offers happened before each call ended — color shows the outcome.</p>
+      <div class="chart-wrap"><canvas id="roundsChart"></canvas></div>
+      <div class="legend-row" id="rounds-legend"></div>
+    </div>
+    <div class="panel">
+      <h2>Carrier sentiment</h2>
+      <p class="panel-sub">Overall tone detected across calls.</p>
+      <div class="chart-wrap"><canvas id="sentimentChart"></canvas></div>
+    </div>
+  </div>
+</main>
+
+<footer>Data sourced live from the carrier-sales API · refreshes every 30s</footer>
+
+<script>
+const OUTCOME_COLORS = {
+  booked: "#5fa776",
+  negotiation_failed: "#c75450",
+  ineligible_carrier: "#e8590c",
+  no_matching_load: "#5b6b7a",
+  "": "#3a4350"
+};
+const OUTCOME_LABELS = {
+  booked: "Booked",
+  negotiation_failed: "Negotiation failed",
+  ineligible_carrier: "Ineligible carrier",
+  no_matching_load: "No matching load",
+  "": "Unclassified"
+};
+const SENTIMENT_COLORS = {
+  positive: "#5fa776",
+  neutral: "#f2a93b",
+  negative: "#c75450",
+  "": "#5b6b7a"
+};
+
+let roundsChart, sentimentChart;
+
+function fmtDuration(seconds){
+  if(seconds === null || seconds === undefined) return "—";
+  const m = Math.floor(seconds/60);
+  const s = Math.round(seconds%60);
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
+function renderKpis(m){
+  const cards = [
+    {label:"Avg call duration", value:fmtDuration(m.avg_call_duration_seconds), cls:"amber", n:m.total_calls},
+    {label:"Avg negotiation rounds (all calls)", value:(m.avg_negotiation_rounds ?? 0), cls:"", n:m.total_calls},
+    {label:"Avg rounds to close a deal", value:(m.avg_negotiation_rounds_booked ?? 0), cls:"green", n:m.booked_calls},
+    {label:"Calls analyzed", value:m.total_calls, cls:""},
+  ];
+  document.getElementById("kpi-grid").innerHTML = cards.map(c => `
+    <div class="kpi-card">
+      <div class="kpi-label">${c.label}</div>
+      <div class="kpi-value ${c.cls}">${c.value}</div>
+      ${c.n !== undefined ? `<div class="kpi-n">n = ${c.n} call${c.n === 1 ? '' : 's'}</div>` : ''}
+    </div>
+  `).join("");
+}
+
+function renderRoundsChart(calls){
+  // Oldest-to-newest left to right reads more naturally as a trend than the
+  // API's newest-first order.
+  const ordered = [...calls].reverse();
+  const labels = ordered.map((c,i) => `#${i+1}`);
+  const data = ordered.map(c => c.num_offers ?? 0);
+  const colors = ordered.map(c => OUTCOME_COLORS[c.outcome] || "#3a4350");
+
+  if(roundsChart) roundsChart.destroy();
+  roundsChart = new Chart(document.getElementById("roundsChart"), {
+    type: "bar",
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderRadius: 3 }] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display:false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const c = ordered[ctx.dataIndex];
+              return `${c.num_offers ?? 0} round(s) — ${OUTCOME_LABELS[c.outcome] || "Unclassified"}`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: { ticks: { color: "#8a96a3", precision:0, stepSize:1 }, grid: { color: "#2a323c" }, title:{display:true, text:"Rounds", color:"#8a96a3"} },
+        x: { ticks: { color: "#8a96a3" }, grid: { display:false } }
+      }
+    }
+  });
+
+  const legend = document.getElementById("rounds-legend");
+  legend.innerHTML = Object.keys(OUTCOME_LABELS).filter(k => k !== "").map(k => `
+    <span><span class="legend-dot" style="background:${OUTCOME_COLORS[k]}"></span>${OUTCOME_LABELS[k]}</span>
+  `).join("");
+}
+
+function renderSentimentChart(breakdown){
+  const keys = Object.keys(breakdown);
+  const labels = keys.map(k => (k || "Unclassified")[0].toUpperCase() + (k || "Unclassified").slice(1));
+  const data = keys.map(k => breakdown[k]);
+  const colors = keys.map(k => SENTIMENT_COLORS[k] || "#5b6b7a");
+
+  if(sentimentChart) sentimentChart.destroy();
+  sentimentChart = new Chart(document.getElementById("sentimentChart"), {
+    type: "doughnut",
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth:0 }] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position:"bottom", labels:{ color:"#ece8dd", font:{family:"Inter", size:12} } } }
+    }
+  });
+}
+
+async function loadData(){
+  try{
+    const [metrics, calls] = await Promise.all([
+      fetch("/dashboard/metrics").then(r => r.json()),
+      fetch("/dashboard/calls?limit=50").then(r => r.json())
+    ]);
+    renderKpis(metrics);
+    renderRoundsChart(calls);
+    renderSentimentChart(metrics.sentiment_breakdown || {});
+    document.getElementById("last-updated").textContent = "Updated " + new Date().toLocaleTimeString();
+  }catch(e){
+    document.getElementById("last-updated").textContent = "Connection error";
+    console.error(e);
+  }
+}
+
+loadData();
+setInterval(loadData, 30000);
+</script>
+
+</body>
+</html>

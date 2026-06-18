@@ -36,3 +36,9 @@ app.include_router(dashboard.router)
 def serve_dashboard():
     """Serves the static dashboard page -- the deliverable link for Objective 2."""
     return FileResponse(Path(__file__).parent / "static" / "dashboard.html")
+
+
+@app.get("/agent", include_in_schema=False)
+def serve_agent_dashboard():
+    """Second dashboard page: agent behavior / call-quality metrics."""
+    return FileResponse(Path(__file__).parent / "static" / "agent.html")

@@ -50,6 +50,7 @@ class CallLogIn(BaseModel):
     num_offers: Optional[int] = 0
     outcome: str  # required -- every call must be classified
     sentiment: Optional[str] = None
+    call_duration_seconds: Optional[float] = None
     transcript_summary: Optional[str] = None
 
 

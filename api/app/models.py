@@ -49,5 +49,6 @@ class CallLog(Base):
 
     outcome = Column(String, nullable=True)     # e.g. booked, negotiation_failed, ineligible_carrier, no_matching_load
     sentiment = Column(String, nullable=True)    # e.g. positive, neutral, negative
+    call_duration_seconds = Column(Float, nullable=True)  # total call length, from the agent's Duration variable
 
     transcript_summary = Column(String, nullable=True)

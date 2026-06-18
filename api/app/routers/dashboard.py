@@ -47,6 +47,18 @@ def dashboard_metrics(db: Session = Depends(get_db)):
 
     avg_num_offers = db.query(func.avg(models.CallLog.num_offers)).scalar()
 
+    # Specifically: how many rounds of back-and-forth does it usually take to
+    # actually close a deal? Different question from "average across all calls",
+    # since plenty of calls never reach negotiation at all (ineligible carrier,
+    # no matching load) and would drag that number down misleadingly.
+    avg_offers_booked = (
+        db.query(func.avg(models.CallLog.num_offers))
+        .filter(models.CallLog.outcome == "booked")
+        .scalar()
+    )
+
+    avg_call_duration = db.query(func.avg(models.CallLog.call_duration_seconds)).scalar()
+
     return {
         "total_calls": total_calls,
         "booked_calls": booked_count,
@@ -56,6 +68,8 @@ def dashboard_metrics(db: Session = Depends(get_db)):
         "avg_loadboard_rate": round(avg_loadboard_rate, 2) if avg_loadboard_rate else None,
         "avg_final_agreed_rate": round(avg_final_rate, 2) if avg_final_rate else None,
         "avg_negotiation_rounds": round(avg_num_offers, 2) if avg_num_offers else 0,
+        "avg_negotiation_rounds_booked": round(avg_offers_booked, 2) if avg_offers_booked else 0,
+        "avg_call_duration_seconds": round(avg_call_duration, 1) if avg_call_duration else None,
     }
 
 
@@ -74,15 +88,19 @@ def dashboard_recent_calls(limit: int = 20, db: Session = Depends(get_db)):
     )
     return [
         {
+            "id": row.id,
             "created_at": row.created_at.isoformat() if row.created_at else None,
             "mc_number": row.mc_number,
             "carrier_name": row.carrier_name,
+            "fmcsa_eligible": row.fmcsa_eligible,
             "load_id": row.load_id,
             "loadboard_rate": row.loadboard_rate,
             "final_agreed_rate": row.final_agreed_rate,
             "num_offers": row.num_offers,
             "outcome": row.outcome,
             "sentiment": row.sentiment,
+            "call_duration_seconds": row.call_duration_seconds,
+            "transcript_summary": row.transcript_summary,
         }
         for row in rows
     ]

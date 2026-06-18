@@ -66,10 +66,22 @@
   .status{
     display:flex;
     align-items:center;
-    gap:8px;
+    gap:18px;
     font-family:'IBM Plex Mono',monospace;
     font-size:12px;
     color:var(--text-muted);
+  }
+  .nav-link{
+    color:var(--text-muted);
+    text-decoration:none;
+    border-bottom:1px dotted var(--bluegray);
+    padding-bottom:1px;
+  }
+  .nav-link:hover{ color:var(--amber); border-color:var(--amber); }
+  .live-status{
+    display:flex;
+    align-items:center;
+    gap:8px;
   }
   .pulse-dot{
     width:9px;height:9px;border-radius:50%;
@@ -202,6 +214,72 @@
     font-family:'IBM Plex Mono',monospace;
     font-size:13px;
   }
+  .kpi-n{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    color:var(--text-muted);
+    margin-top:6px;
+  }
+  .view-btn{
+    background:none;
+    border:1px solid var(--bluegray);
+    color:var(--text-muted);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    padding:4px 10px;
+    border-radius:3px;
+    cursor:pointer;
+  }
+  .view-btn:hover{ border-color:var(--amber); color:var(--amber); }
+  .modal-overlay{
+    display:none;
+    position:fixed; inset:0;
+    background:rgba(10,12,15,0.7);
+    align-items:center; justify-content:center;
+    z-index:50;
+  }
+  .modal-overlay.open{ display:flex; }
+  .modal-box{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:6px;
+    padding:24px;
+    width:420px;
+    max-width:90vw;
+  }
+  .modal-box h3{
+    font-family:'Oswald',sans-serif;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    font-size:15px;
+    margin:0 0 16px 0;
+  }
+  .modal-row{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    padding:7px 0;
+    border-bottom:1px solid var(--panel-border);
+    font-size:12.5px;
+  }
+  .modal-row:last-child{ border-bottom:none; }
+  .modal-row .k{ color:var(--text-muted); font-family:'Inter',sans-serif; }
+  .modal-row .v{ font-family:'IBM Plex Mono',monospace; text-align:right; }
+  .modal-close{
+    margin-top:18px;
+    width:100%;
+    background:none;
+    border:1px solid var(--panel-border);
+    color:var(--text);
+    font-family:'Oswald',sans-serif;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    font-size:12px;
+    padding:9px;
+    border-radius:4px;
+    cursor:pointer;
+  }
+  .modal-close:hover{ border-color:var(--amber); }
   footer{
     text-align:center;
     color:var(--text-muted);
@@ -216,12 +294,22 @@
 <div class="hazard-rule"></div>
 <header>
   <div class="brand">
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#f2a93b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2.5 16V6.5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1V16"/>
+      <path d="M12.5 9.5h3.8l3.2 3.2V16h-7"/>
+      <circle cx="6.5" cy="17.5" r="1.6"/>
+      <circle cx="16" cy="17.5" r="1.6"/>
+      <path d="M4 17.5h1M17.7 17.5h2.3M8.2 17.5h6"/>
+    </svg>
     <h1>Carrier Sales</h1>
     <span class="sub">Ops Dashboard</span>
   </div>
   <div class="status">
-    <span class="pulse-dot"></span>
-    <span id="last-updated">Loading...</span>
+    <a class="nav-link" href="/agent">Agent Behavior →</a>
+    <div class="live-status">
+      <span class="pulse-dot"></span>
+      <span id="last-updated">Loading...</span>
+    </div>
   </div>
 </header>
 
@@ -247,6 +335,14 @@
 </main>
 
 <footer>Data sourced live from the carrier-sales API · refreshes every 30s</footer>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-box">
+    <h3>Call record</h3>
+    <div id="modal-content"></div>
+    <button class="modal-close" id="modal-close">Close</button>
+  </div>
+</div>
 
 <script>
 const OUTCOME_LABELS = {
@@ -286,15 +382,16 @@ function fmtTime(iso){
 function renderKpis(m){
   const cards = [
     {label:"Total calls", value:m.total_calls, cls:""},
-    {label:"Conversion rate", value:fmtPct(m.conversion_rate), cls:"green"},
+    {label:"Conversion rate", value:fmtPct(m.conversion_rate), cls:"green", n:m.total_calls},
     {label:"Booked loads", value:m.booked_calls, cls:"amber"},
-    {label:"Avg negotiation rounds", value:(m.avg_negotiation_rounds ?? 0), cls:""},
-    {label:"Avg booked rate", value:fmtMoney(m.avg_final_agreed_rate), cls:"amber"},
+    {label:"Avg negotiation rounds", value:(m.avg_negotiation_rounds ?? 0), cls:"", n:m.total_calls},
+    {label:"Avg booked rate", value:fmtMoney(m.avg_final_agreed_rate), cls:"amber", n:m.booked_calls},
   ];
   document.getElementById("kpi-grid").innerHTML = cards.map(c => `
     <div class="kpi-card">
       <div class="kpi-label">${c.label}</div>
       <div class="kpi-value ${c.cls}">${c.value}</div>
+      ${c.n !== undefined ? `<div class="kpi-n">n = ${c.n} call${c.n === 1 ? '' : 's'}</div>` : ''}
     </div>
   `).join("");
 }
@@ -340,7 +437,10 @@ function renderSentimentChart(breakdown){
   });
 }
 
+let recentCallsData = [];
+
 function renderTable(rows){
+  recentCallsData = rows;
   const wrap = document.getElementById("table-wrap");
   if(!rows.length){
     wrap.innerHTML = `<div class="empty-state">No calls logged yet — once the agent handles a real or test call, it will show up here.</div>`;
@@ -350,10 +450,10 @@ function renderTable(rows){
     <table>
       <thead><tr>
         <th>Time</th><th>MC #</th><th>Carrier</th><th>Load</th>
-        <th>Rate</th><th>Outcome</th><th>Sentiment</th>
+        <th>Rate</th><th>Outcome</th><th>Sentiment</th><th>Details</th>
       </tr></thead>
       <tbody>
-        ${rows.map(r => `
+        ${rows.map((r,i) => `
           <tr>
             <td>${fmtTime(r.created_at)}</td>
             <td>${r.mc_number || "—"}</td>
@@ -362,12 +462,47 @@ function renderTable(rows){
             <td>${fmtMoney(r.final_agreed_rate || r.loadboard_rate)}</td>
             <td><span class="pill ${r.outcome || 'unknown'}">${OUTCOME_LABELS[r.outcome] || r.outcome || "Unclassified"}</span></td>
             <td><span class="dot ${r.sentiment || 'unknown'}"></span>${r.sentiment || "—"}</td>
+            <td><button class="view-btn" onclick="showRecord(${i})">View</button></td>
           </tr>
         `).join("")}
       </tbody>
     </table>
   `;
 }
+
+const RECORD_LABELS = {
+  id: "Call ID",
+  created_at: "Logged at",
+  mc_number: "MC number",
+  carrier_name: "Carrier name",
+  fmcsa_eligible: "FMCSA eligible",
+  load_id: "Load ID",
+  loadboard_rate: "Listed rate",
+  final_agreed_rate: "Final agreed rate",
+  num_offers: "Negotiation rounds",
+  outcome: "Outcome",
+  sentiment: "Sentiment",
+  transcript_summary: "Transcript summary",
+};
+
+function showRecord(i){
+  const r = recentCallsData[i];
+  const content = Object.keys(RECORD_LABELS).map(key => `
+    <div class="modal-row">
+      <span class="k">${RECORD_LABELS[key]}</span>
+      <span class="v">${r[key] === null || r[key] === undefined || r[key] === "" ? "—" : r[key]}</span>
+    </div>
+  `).join("");
+  document.getElementById("modal-content").innerHTML = content;
+  document.getElementById("modal-overlay").classList.add("open");
+}
+
+document.getElementById("modal-close").addEventListener("click", () => {
+  document.getElementById("modal-overlay").classList.remove("open");
+});
+document.getElementById("modal-overlay").addEventListener("click", (e) => {
+  if(e.target.id === "modal-overlay") e.target.classList.remove("open");
+});
 
 async function loadData(){
   try{
