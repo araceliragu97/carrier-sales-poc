@@ -1,3 +1,4 @@
+import asyncio
 import re
 
 import httpx
@@ -8,6 +9,13 @@ from app.config import settings
 from app.schemas import CarrierVerifyRequest, CarrierVerifyResponse
 
 router = APIRouter(prefix="/carriers", tags=["carriers"], dependencies=[Depends(verify_api_key)])
+
+# FMCSA's API is a real government service with no uptime SLA -- it occasionally
+# returns transient 5xx errors or times out. Retrying a couple of times with a
+# short delay turns most of these blips into successful lookups instead of
+# telling the carrier "sorry, our systems are down" on the first hiccup.
+FMCSA_MAX_ATTEMPTS = 3
+FMCSA_RETRY_DELAY_SECONDS = 1.0
 
 
 def _clean_mc_number(raw: str) -> str:
@@ -42,22 +50,32 @@ async def verify_carrier(request: CarrierVerifyRequest):
 
     url = f"{settings.FMCSA_BASE_URL}/docket-number/{mc_number}"
 
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        resp = await client.get(url, params={"webKey": settings.FMCSA_WEBKEY})
+    last_status = None
+    for attempt in range(1, FMCSA_MAX_ATTEMPTS + 1):
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(url, params={"webKey": settings.FMCSA_WEBKEY})
+        except httpx.HTTPError:
+            # Network-level failure (timeout, connection reset, etc.) -- treat
+            # like a failed attempt and retry rather than crashing the call.
+            last_status = "network_error"
+        else:
+            if resp.status_code == 200:
+                data = resp.json()
+                # FMCSA's response shape nests the carrier record inside a "content" list.
+                # Defensive parsing because government API responses are not always
+                # perfectly consistent, and we'd rather fail safe than crash the call.
+                return _parse_fmcsa_response(data, mc_number)
+            last_status = resp.status_code
 
-    if resp.status_code != 200:
-        return CarrierVerifyResponse(
-            mc_number=mc_number,
-            eligible=False,
-            reason=f"FMCSA lookup failed (HTTP {resp.status_code})",
-        )
+        if attempt < FMCSA_MAX_ATTEMPTS:
+            await asyncio.sleep(FMCSA_RETRY_DELAY_SECONDS)
 
-    data = resp.json()
-
-    # FMCSA's response shape nests the carrier record inside a "content" list.
-    # Defensive parsing because government API responses are not always perfectly
-    # consistent, and we'd rather fail safe than crash the call.
-    return _parse_fmcsa_response(data, mc_number)
+    return CarrierVerifyResponse(
+        mc_number=mc_number,
+        eligible=False,
+        reason=f"FMCSA lookup failed after {FMCSA_MAX_ATTEMPTS} attempts (last status: {last_status})",
+    )
 
 
 def _parse_fmcsa_response(data: dict, mc_number: str) -> CarrierVerifyResponse:

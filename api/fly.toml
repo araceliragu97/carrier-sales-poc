@@ -1,0 +1,23 @@
+app = "carrier-sales-araceli"
+primary_region = "dfw"
+
+[build]
+
+[env]
+  DATABASE_URL = "sqlite:///./data/carrier_sales.db"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[mounts]]
+  source = "data"
+  destination = "/app/data"
+
+[[vm]]
+  memory = "256mb"
+  cpu_kind = "shared"
+  cpus = 1
